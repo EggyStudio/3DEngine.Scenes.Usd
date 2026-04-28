@@ -44,7 +44,7 @@ public sealed class UsdSceneReader : ISceneReader
     private static readonly ILogger Logger = Log.Category("Engine.Scenes.Usd");
 
     /// <inheritdoc />
-    public string[] Extensions => [".usd", ".usda", ".usdc"];
+    public string[] Extensions => [".usd", ".usda", ".usdc", ".usdz"];
 
     /// <inheritdoc />
     public string FormatId => "usd";

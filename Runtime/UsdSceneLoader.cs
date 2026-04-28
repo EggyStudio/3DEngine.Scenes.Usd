@@ -31,7 +31,7 @@ public sealed class UsdSceneLoader : IAssetLoader<SceneAsset>
     private readonly UsdSceneReader _reader = new();
 
     /// <inheritdoc />
-    public string[] Extensions => [".usd", ".usda", ".usdc"];
+    public string[] Extensions => [".usd", ".usda", ".usdc", ".usdz"];
 
     /// <inheritdoc />
     public async Task<AssetLoadResult<SceneAsset>> LoadAsync(AssetLoadContext context, CancellationToken ct)

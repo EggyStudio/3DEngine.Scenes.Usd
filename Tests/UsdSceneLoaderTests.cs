@@ -25,7 +25,7 @@ public class UsdSceneLoaderTests
         var reader = new UsdSceneReader();
 
         reader.FormatId.Should().Be("usd");
-        reader.Extensions.Should().BeEquivalentTo([".usd", ".usda", ".usdc"]);
+        reader.Extensions.Should().BeEquivalentTo([".usd", ".usda", ".usdc", ".usdz"]);
     }
 
     [Fact]
