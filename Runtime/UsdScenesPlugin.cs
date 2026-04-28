@@ -38,7 +38,18 @@ public sealed class UsdScenesPlugin : IPlugin
             // Idempotent + thread-safe per UniversalSceneDescription contract.
             // Configures the native loader and registers the bundled Pixar plugin tree
             // (plugInfo.json discovery, schema registration, file format plugins).
-            UniversalSceneDescription.UsdRuntime.Initialize();
+            //
+            // Auto-detect the on-disk layout: the UniversalSceneDescription NuGet ships its
+            // native assets under runtimes/<rid>/native/usd/, but the .NET SDK's runtime-asset
+            // deployment FLATTENS those into the bin root (libusd_*.so + plugInfo.json + schema*.usda
+            // all live next to the host assembly). UsdRuntime.Initialize() with no args probes
+            // BaseDirectory/usd, which doesn't exist in that layout, so we point it at the
+            // actual location explicitly.
+            var (pluginDir, nativeDir) = UsdRuntimeLayout.Resolve();
+            if (pluginDir is not null || nativeDir is not null)
+                UniversalSceneDescription.UsdRuntime.Initialize(pluginDir, nativeDir);
+            else
+                UniversalSceneDescription.UsdRuntime.Initialize();
         }
         catch (Exception ex)
         {

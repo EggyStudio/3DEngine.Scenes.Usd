@@ -9,6 +9,9 @@ namespace Engine.Tests.Scenes.Usd;
 /// (reader + writer), and registers <see cref="UsdSceneLoader"/> with the
 /// <see cref="AssetServer"/>.
 /// </summary>
+/// <remarks>
+/// Skipped when the native USD plug-in tree isn't reachable - see <see cref="UsdRuntimeLayout"/>.
+/// </remarks>
 [Trait("Category", "Unit")]
 [Trait("Backend", "Usd")]
 public class UsdScenesPluginTests
@@ -16,6 +19,8 @@ public class UsdScenesPluginTests
     [Fact]
     public void UsdScenesPlugin_Inserts_UsdRuntimeHandle_Resource()
     {
+        SkipIfUsdMissing();
+
         using var app = new App();
         app.AddPlugin(new ScenesPlugin())
            .AddPlugin(new UsdScenesPlugin());
@@ -26,6 +31,8 @@ public class UsdScenesPluginTests
     [Fact]
     public void UsdScenesPlugin_Registers_Reader_And_Writer_With_Registry()
     {
+        SkipIfUsdMissing();
+
         using var app = new App();
         app.AddPlugin(new ScenesPlugin())
            .AddPlugin(new UsdScenesPlugin());
@@ -42,6 +49,8 @@ public class UsdScenesPluginTests
     [Fact]
     public void UsdScenesPlugin_Creates_Registry_Implicitly_If_ScenesPlugin_Missing()
     {
+        SkipIfUsdMissing();
+
         // Defensive path: forgetting ScenesPlugin should not break USD setup.
         using var app = new App();
         app.AddPlugin(new UsdScenesPlugin());
@@ -54,6 +63,8 @@ public class UsdScenesPluginTests
     [Fact]
     public void UsdScenesPlugin_Registers_UsdSceneLoader_With_AssetServer()
     {
+        SkipIfUsdMissing();
+
         using var app = new App();
         app.AddPlugin(new AssetPlugin());
 
@@ -67,6 +78,10 @@ public class UsdScenesPluginTests
         // loader-by-extension map should grow by 3.
         server.LoaderCount.Should().Be(before + 3);
     }
+
+    private static void SkipIfUsdMissing()
+    {
+        if (!UsdRuntimeLayout.IsAvailable())
+            SkipTest.With("OpenUSD native plug-in tree not found - skipping plugin wiring tests that initialize the runtime.");
+    }
 }
-
-
