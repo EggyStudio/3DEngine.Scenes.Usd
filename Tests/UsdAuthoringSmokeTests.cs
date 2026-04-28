@@ -17,6 +17,7 @@ namespace Engine.Tests.Scenes.Usd;
 /// </remarks>
 [Trait("Category", "Integration")]
 [Trait("Backend", "Usd")]
+[Collection(UsdTestCollection.Name)]
 public class UsdAuthoringSmokeTests : IDisposable
 {
     private readonly string _tempDir;

@@ -16,6 +16,7 @@ namespace Engine.Tests.Scenes.Usd;
 /// </remarks>
 [Trait("Category", "Unit")]
 [Trait("Backend", "Usd")]
+[Collection(UsdTestCollection.Name)]
 public class UsdRuntimeTests
 {
     [Fact]

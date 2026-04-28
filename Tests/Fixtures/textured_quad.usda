@@ -1,0 +1,55 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    upAxis = "Y"
+    metersPerUnit = 1
+)
+
+def Xform "World"
+{
+    def Mesh "Quad" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        point3f[] points = [(-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)]
+        texCoord2f[] primvars:st1 = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+            interpolation = "vertex"
+        )
+        rel material:binding = </World/Looks/Tex>
+    }
+
+    def Scope "Looks"
+    {
+        def Material "Tex"
+        {
+            token outputs:surface.connect = </World/Looks/Tex/PBR.outputs:surface>
+
+            def Shader "PBR"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor.connect = </World/Looks/Tex/Albedo.outputs:rgb>
+                token outputs:surface
+            }
+
+            def Shader "Albedo"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @tex/albedo.png@
+                token inputs:wrapS = "clamp"
+                token inputs:wrapT = "repeat"
+                float2 inputs:st.connect = </World/Looks/Tex/StReader.outputs:result>
+                float3 outputs:rgb
+            }
+
+            def Shader "StReader"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                token inputs:varname = "st1"
+                float2 outputs:result
+            }
+        }
+    }
+}
+

@@ -1,0 +1,48 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    upAxis = "Y"
+    metersPerUnit = 1
+)
+
+def Xform "World"
+{
+    def Mesh "Cube" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+        int[] faceVertexIndices = [0, 1, 2, 3,  4, 5, 6, 7,  0, 1, 5, 4,  2, 3, 7, 6,  0, 3, 7, 4,  1, 2, 6, 5]
+        point3f[] points = [(-1, -1, -1), (1, -1, -1), (1, 1, -1), (-1, 1, -1), (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)]
+        rel material:binding = </World/Looks/RedMat>
+    }
+
+    def Scope "Looks"
+    {
+        def Material "RedMat" (
+            customData = {
+                dictionary "engine3d" = {
+                    token "alphaMode" = "MASK"
+                    float "alphaCutoff" = 0.25
+                    bool "doubleSided" = 1
+                }
+            }
+        )
+        {
+            token outputs:surface.connect = </World/Looks/RedMat/PBR.outputs:surface>
+
+            def Shader "PBR"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (1, 0, 0)
+                float inputs:opacity = 1.0
+                float inputs:metallic = 0.2
+                float inputs:roughness = 0.7
+                color3f inputs:emissiveColor = (0, 1, 0)
+                token outputs:surface
+            }
+        }
+    }
+}
+
+

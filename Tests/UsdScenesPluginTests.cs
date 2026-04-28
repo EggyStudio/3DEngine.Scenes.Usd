@@ -14,6 +14,7 @@ namespace Engine.Tests.Scenes.Usd;
 /// </remarks>
 [Trait("Category", "Unit")]
 [Trait("Backend", "Usd")]
+[Collection(UsdTestCollection.Name)]
 public class UsdScenesPluginTests
 {
     [Fact]
@@ -44,6 +45,7 @@ public class UsdScenesPluginTests
         registry.FindReaderByExtension(".usd").Should().BeOfType<UsdSceneReader>();
         registry.FindReaderByExtension(".usda").Should().BeOfType<UsdSceneReader>();
         registry.FindReaderByExtension(".usdc").Should().BeOfType<UsdSceneReader>();
+        registry.FindReaderByExtension(".usdz").Should().BeOfType<UsdSceneReader>();
     }
 
     [Fact]
@@ -74,9 +76,9 @@ public class UsdScenesPluginTests
         app.AddPlugin(new ScenesPlugin())
            .AddPlugin(new UsdScenesPlugin());
 
-        // UsdSceneLoader registers three extensions (.usd / .usda / .usdc), so the
-        // loader-by-extension map should grow by 3.
-        server.LoaderCount.Should().Be(before + 3);
+        // UsdSceneLoader registers four extensions (.usd / .usda / .usdc / .usdz), so the
+        // loader-by-extension map should grow by 4.
+        server.LoaderCount.Should().Be(before + 4);
     }
 
     private static void SkipIfUsdMissing()

@@ -9,14 +9,15 @@ namespace Engine.Tests.Scenes.Usd;
 /// </summary>
 [Trait("Category", "Unit")]
 [Trait("Backend", "Usd")]
+[Collection(UsdTestCollection.Name)]
 public class UsdSceneLoaderTests
 {
     [Fact]
-    public void UsdSceneLoader_Declares_All_Three_Usd_Extensions()
+    public void UsdSceneLoader_Declares_All_Four_Usd_Extensions()
     {
         var loader = new UsdSceneLoader();
 
-        loader.Extensions.Should().BeEquivalentTo([".usd", ".usda", ".usdc"]);
+        loader.Extensions.Should().BeEquivalentTo([".usd", ".usda", ".usdc", ".usdz"]);
     }
 
     [Fact]
@@ -35,36 +36,19 @@ public class UsdSceneLoaderTests
     }
 
     [Fact]
-    public async Task UsdSceneReader_Stub_Returns_Empty_Scene_With_Source_Metadata()
+    public async Task UsdSceneReader_Empty_Stream_Fails_Gracefully()
     {
-        // Stub status: until prim traversal is implemented, the reader hands back an empty
-        // Scene whose Name reflects the source path. Lock that contract so the asset
-        // pipeline plumbing (Handle<SceneAsset>, AssetEvent<SceneAsset>) keeps working.
+        // The production reader spools the stream to disk and asks UsdStage.Open to parse
+        // it; an empty buffer can't be parsed as USD, so the reader should surface the
+        // failure (either via exception or null stage), and the loader should turn it into
+        // a Fail result. Lock that contract here.
         var reader = new UsdSceneReader();
         using var ctx = MakeContext("scenes/empty.usda", []);
 
-        var scene = await reader.ReadAsync(ctx, SceneImportSettings.Default, CancellationToken.None);
+        var act = async () => await reader.ReadAsync(ctx, SceneImportSettings.Default, CancellationToken.None);
 
-        scene.Should().NotBeNull();
-        scene.Roots.Should().BeEmpty();
-        scene.SourceCoordinateSystem.Should().Be(SceneCoordinateSystem.YUp);
-        scene.SourceMetersPerUnit.Should().Be(1.0);
-        scene.Name.Should().Contain("empty.usda");
-    }
-
-    [Fact]
-    public async Task UsdSceneLoader_Wraps_Reader_Output_Into_SceneAsset()
-    {
-        var loader = new UsdSceneLoader();
-        using var ctx = MakeContext("scenes/empty.usda", []);
-
-        var result = await loader.LoadAsync(ctx, CancellationToken.None);
-
-        result.Success.Should().BeTrue(result.Error);
-        result.Asset.Should().NotBeNull();
-        result.Asset!.SourceFormat.Should().Be("usd");
-        result.Asset.SourcePath.Should().Be("scenes/empty.usda");
-        result.Asset.Scene.Should().NotBeNull();
+        await act.Should().ThrowAsync<Exception>(
+            "an empty stream is not a valid USD payload");
     }
 
     [Fact]
@@ -85,11 +69,22 @@ public class UsdSceneLoaderTests
     [Fact]
     public async Task UsdSceneWriter_Stub_Completes_Without_Error()
     {
+        // Smoke-only: the production writer authors a real (but empty) stage when given
+        // an empty Scene. Real round-trip coverage lives in UsdSceneRoundTripTests.
         var writer = new UsdSceneWriter();
         var scene = new Scene { Name = "out" };
+        var path = Path.Combine(Path.GetTempPath(), $"3dengine-usd-empty-{Guid.NewGuid():N}.usda");
 
-        await writer.WriteAsync(scene, "/tmp/out.usda", SceneExportSettings.Default, CancellationToken.None);
-        // No assertion - the contract is just "doesn't throw" until authoring is implemented.
+        try
+        {
+            await writer.WriteAsync(scene, path, SceneExportSettings.Default, CancellationToken.None);
+            File.Exists(path).Should().BeTrue("the writer must produce the target file even for an empty scene");
+            new FileInfo(path).Length.Should().BeGreaterThan(0);
+        }
+        finally
+        {
+            try { File.Delete(path); } catch { /* best-effort */ }
+        }
     }
 
     [Fact]

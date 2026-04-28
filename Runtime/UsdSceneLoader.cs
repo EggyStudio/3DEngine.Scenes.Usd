@@ -16,11 +16,10 @@ namespace Engine;
 /// after the background worker completes (with an <c>AssetEvent&lt;SceneAsset&gt;.Added</c>).
 /// </para>
 /// <para>
-/// <b>Stub status:</b> this class wires the plumbing end-to-end but the USD-to-<see cref="Scene"/>
-/// translation in <see cref="UsdSceneReader.ReadAsync"/> is still a TODO - it currently produces
-/// an empty <see cref="Scene"/> with the source path set. Implement the prim traversal
-/// (<c>UsdPrim</c> → <see cref="SceneNode"/>, <c>UsdGeomXformable</c> → <see cref="Transform"/>,
-/// <c>UsdGeomMesh</c> → mesh + material payloads) in that file.
+/// The reader walks the prim tree on the calling worker thread and produces a fully
+/// populated <see cref="Scene"/> (meshes, cameras, UsdLux lights, UsdPreviewSurface
+/// materials). See <see cref="UsdSceneReader"/> for the conversion contract and the list
+/// of payload kinds covered.
 /// </para>
 /// </remarks>
 /// <seealso cref="UsdScenesPlugin"/>
