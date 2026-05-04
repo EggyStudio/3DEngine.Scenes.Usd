@@ -50,6 +50,15 @@ internal static class UsdMaterialReader
     private const string IdUsdUVTexture       = "UsdUVTexture";
     private const string IdPrimvarReaderFloat2= "UsdPrimvarReader_float2";
 
+    // MaterialX-in-USD shader IDs. UsdShade authoring of MaterialX node graphs sets
+    // info:id to the canonical "ND_<nodedef>_surfaceshader" the MaterialX standard
+    // libraries use. We recognise the two PBR shaders the engine ships fixtures for;
+    // the value-extraction path (TryExtractMaterialXSurface) maps their authored
+    // numeric inputs onto SceneMaterialPayload factors.
+    private const string IdMtlxStandardSurface = "ND_standard_surface_surfaceshader";
+    private const string IdMtlxGltfPbr         = "ND_gltf_pbr_surfaceshader";
+    private const string IdMtlxOpenPbrSurface  = "ND_open_pbr_surface_surfaceshader";
+
     /// <summary>
     /// Walks <paramref name="stage"/> once and produces a path-keyed cache of
     /// <see cref="SceneMaterialPayload"/> for every <c>UsdShadeMaterial</c> prim.
@@ -147,6 +156,28 @@ internal static class UsdMaterialReader
                 {
                     surface = new UsdShadeShader(child);
                     break;
+                }
+            }
+        }
+
+        // MaterialX-in-USD bridge: if we didn't find a UsdPreviewSurface, look for an
+        // embedded MaterialX surfaceshader whose info:id is one of the canonical
+        // "ND_*_surfaceshader" tokens. This covers UsdShade graphs authored from a
+        // MaterialX nodedef (USD's UsdMtlx file-format plugin emits exactly this shape).
+        if (surface is null)
+        {
+            foreach (var child in matPrim.GetChildren())
+            {
+                if (child.GetTypeName().ToString() != "Shader") continue;
+                var id = ReadShaderId(child);
+                if (id is IdMtlxStandardSurface or IdMtlxGltfPbr or IdMtlxOpenPbrSurface)
+                {
+                    var mtlxPayload = TryExtractMaterialXSurface(matPrim, child, id, time);
+                    if (mtlxPayload is not null)
+                    {
+                        Logger.Debug($"UsdMaterialReader: '{matPath}' resolved via MaterialX bridge ({id}).");
+                        return mtlxPayload;
+                    }
                 }
             }
         }
@@ -294,6 +325,121 @@ internal static class UsdMaterialReader
             AlphaCutoff = alphaCutoff,
             DoubleSided = doubleSided,
         };
+    }
+
+    // -- MaterialX-in-USD bridge --
+
+    /// <summary>
+    /// Reads a USD shader prim whose <c>info:id</c> is one of the MaterialX
+    /// <c>ND_*_surfaceshader</c> tokens and projects its authored numeric inputs onto
+    /// a <see cref="SceneMaterialPayload"/>. Mirrors the input set
+    /// <see cref="MaterialXMaterialReader"/> handles on the pure-MTLX side, so a USD
+    /// stage that embeds a MaterialX network and a side-by-side <c>.mtlx</c> file produce
+    /// the same payload.
+    /// </summary>
+    /// <remarks>
+    /// Texture / connection following is intentionally out of scope for the first slice
+    /// (the engine's UsdUVTexture helpers don't apply: MaterialX uses
+    /// <c>image</c>/<c>tiledimage</c> nodes with their own input naming). Authored
+    /// factor values cover the test fixtures and the common "no textures" authoring
+    /// path; richer extraction can land alongside the wider MaterialX value-getter
+    /// support in future MaterialX.Net releases.
+    /// </remarks>
+    private static SceneMaterialPayload? TryExtractMaterialXSurface(
+        UsdPrim matPrim,
+        UsdPrim shaderPrim,
+        string shaderId,
+        UsdTimeCode time)
+    {
+        Vector4 baseColor = Vector4.One;
+        float metallic = 0f;
+        float roughness = 1f;
+        Vector3 emissive = Vector3.Zero;
+
+        foreach (var attr in shaderPrim.GetAttributes())
+        {
+            var name = attr.GetName().ToString();
+            if (!name.StartsWith("inputs:", StringComparison.Ordinal)) continue;
+            if (!attr.HasAuthoredValue()) continue;
+
+            var inputName = name.Substring("inputs:".Length);
+            switch (shaderId, inputName)
+            {
+                case (IdMtlxStandardSurface, "base_color"):
+                case (IdMtlxOpenPbrSurface,  "base_color"):
+                    if (TryReadColor3(attr, time, out var sc)) baseColor = new Vector4(sc, baseColor.W);
+                    break;
+                case (IdMtlxStandardSurface, "metalness"):
+                case (IdMtlxOpenPbrSurface,  "base_metalness"):
+                    if (TryReadFloat(attr, time, out var sm)) metallic = sm;
+                    break;
+                case (IdMtlxStandardSurface, "specular_roughness"):
+                case (IdMtlxOpenPbrSurface,  "specular_roughness"):
+                    if (TryReadFloat(attr, time, out var sr)) roughness = sr;
+                    break;
+                case (IdMtlxStandardSurface, "emission_color"):
+                case (IdMtlxOpenPbrSurface,  "emission_color"):
+                    if (TryReadColor3(attr, time, out var se)) emissive = se;
+                    break;
+
+                case (IdMtlxGltfPbr, "base_color"):
+                    if (TryReadColor4(attr, time, out var gc)) baseColor = gc;
+                    else if (TryReadColor3(attr, time, out var gc3)) baseColor = new Vector4(gc3, 1f);
+                    break;
+                case (IdMtlxGltfPbr, "metallic"):
+                    if (TryReadFloat(attr, time, out var gm)) metallic = gm;
+                    break;
+                case (IdMtlxGltfPbr, "roughness"):
+                    if (TryReadFloat(attr, time, out var gr)) roughness = gr;
+                    break;
+                case (IdMtlxGltfPbr, "emissive"):
+                    if (TryReadColor3(attr, time, out var ge)) emissive = ge;
+                    break;
+            }
+        }
+
+        return new SceneMaterialPayload
+        {
+            Name = matPrim.GetName().ToString(),
+            SourcePath = matPrim.GetPath().GetString(),
+            BaseColorFactor = baseColor,
+            MetallicFactor = metallic,
+            RoughnessFactor = roughness,
+            EmissiveFactor = emissive,
+        };
+    }
+
+    private static bool TryReadFloat(UsdAttribute attr, UsdTimeCode time, out float value)
+    {
+        value = 0f;
+        try { value = (float)attr.Get(time); return true; }
+        catch { return false; }
+    }
+
+    private static bool TryReadColor3(UsdAttribute attr, UsdTimeCode time, out Vector3 value)
+    {
+        value = default;
+        try
+        {
+            VtValue v = attr.Get(time);
+            GfVec3f vec = v;
+            value = new Vector3(vec[0], vec[1], vec[2]);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    private static bool TryReadColor4(UsdAttribute attr, UsdTimeCode time, out Vector4 value)
+    {
+        value = default;
+        try
+        {
+            VtValue v = attr.Get(time);
+            GfVec4f vec = v;
+            value = new Vector4(vec[0], vec[1], vec[2], vec[3]);
+            return true;
+        }
+        catch { return false; }
     }
 
     // -- Connection following --
