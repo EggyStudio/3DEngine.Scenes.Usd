@@ -61,27 +61,16 @@ public sealed class UsdScenesPlugin : IPlugin
         // via SystemDescriptor.Read<UsdRuntimeHandle>() and order/parallelize correctly.
         app.World.InsertResource(new UsdRuntimeHandle());
 
-        // Register reader/writer with the backend-agnostic registry.
-        if (!app.World.TryGetResource<SceneReaderRegistry>(out var registry))
-        {
-            registry = new SceneReaderRegistry();
-            app.World.InsertResource(registry);
-            Logger.Warn("UsdScenesPlugin: SceneReaderRegistry was missing - did you forget to add ScenesPlugin? Created one implicitly.");
-        }
+        // Register reader/writer with the backend-agnostic registry. ScenesPlugin is at
+        var registry = app.World.Resource<SceneReaderRegistry>();
         registry.RegisterReader(new UsdSceneReader());
         registry.RegisterWriter(new UsdSceneWriter());
 
         // Register the asset loader so AssetServer can load Handle<SceneAsset> directly from
         // .usd / .usda / .usdc files. Mirrors how DefaultPlugins registers GlslLoader.
-        if (app.World.TryGetResource<AssetServer>(out var server))
-        {
-            server.RegisterLoader(new UsdSceneLoader());
-            Logger.Debug("UsdScenesPlugin: UsdSceneLoader registered with AssetServer.");
-        }
-        else
-        {
-            Logger.Warn("UsdScenesPlugin: AssetServer not found - UsdSceneLoader was NOT registered. Add AssetPlugin first.");
-        }
+        var server = app.World.Resource<AssetServer>();
+        server.RegisterLoader(new UsdSceneLoader());
+        Logger.Debug("UsdScenesPlugin: UsdSceneLoader registered with AssetServer.");
 
         Logger.Info("UsdScenesPlugin: OpenUSD backend ready.");
     }
@@ -93,4 +82,4 @@ public sealed class UsdScenesPlugin : IPlugin
 /// <c>Read&lt;UsdRuntimeHandle&gt;()</c> dependency on their <see cref="SystemDescriptor"/>
 /// so the parallel scheduler sees the order constraint.
 /// </summary>
-public sealed class UsdRuntimeHandle { }
+public sealed class UsdRuntimeHandle;
