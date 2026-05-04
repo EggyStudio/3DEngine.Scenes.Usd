@@ -43,7 +43,7 @@ public sealed class UsdReaderSpikeTests
             else UsdRuntime.Initialize(pluginDir, nativeDir);
         }
 
-        // The test runner stages Modules/3DEngine.Scenes/Source/teapot.usdz into
+        // The test runner stages Modules/Engine.Scenes/Source/teapot.usdz into
         // {AppContext.BaseDirectory}/source/teapot.usdz (see 3DEngine.Tests.csproj None block).
         var candidate = Path.Combine(AppContext.BaseDirectory, "source", "teapot.usdz");
         _teapotPath = File.Exists(candidate) ? candidate : null;
