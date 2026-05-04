@@ -484,6 +484,12 @@ internal static class UsdMaterialReader
         }
         if (string.IsNullOrEmpty(assetPath)) return false;
 
+        // USDZ packaged-asset paths look like "<archive.usdz>[<inner>]". Extract the
+        // member bytes once and republish under a synthetic __embedded__/ path so the
+        // asset server can decode them through the regular extension dispatch -
+        // mirrors GltfModelReader's data-URI / GLB binary-buffer handling.
+        assetPath = UsdEmbeddedTextureResolver.Resolve(assetPath);
+
         // wrapS / wrapT
         var wrapS = ReadWrap(srcPrim, TokWrapS);
         var wrapT = ReadWrap(srcPrim, TokWrapT);

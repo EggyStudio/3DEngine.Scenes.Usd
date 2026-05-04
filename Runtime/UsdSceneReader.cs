@@ -666,6 +666,9 @@ public sealed class UsdSceneReader : ISceneReader
                         SdfAssetPath ap = v;
                         var resolved = ap.GetResolvedPath();
                         domeTexture = !string.IsNullOrEmpty(resolved) ? resolved : ap.GetAssetPath();
+                        // Translate USDZ packaged-asset syntax (foo.usdz[hdri.exr])
+                        // into a synthetic __embedded__/ path the asset server can load.
+                        domeTexture = UsdEmbeddedTextureResolver.Resolve(domeTexture);
                     }
                     catch { /* leave null */ }
                 }
