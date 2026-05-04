@@ -49,7 +49,7 @@ public sealed class UsdSceneReaderSubsetTests
 
         // Cube: 6 quads -> 12 triangles -> 36 indices.
         mesh.Indices.Length.Should().Be(36);
-        mesh.Subsets.Should().HaveCountGreaterOrEqualTo(2,
+        mesh.Subsets.Should().HaveCountGreaterThanOrEqualTo(2,
             "two materialBind subsets cover faces [0,1,2] and [3,4,5]");
 
         var matA = mesh.Subsets.First(s => s.MaterialPath == "/World/Looks/A");
