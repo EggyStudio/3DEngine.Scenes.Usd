@@ -17,4 +17,3 @@ public sealed class UsdTestCollection
 {
     public const string Name = "Usd";
 }
-

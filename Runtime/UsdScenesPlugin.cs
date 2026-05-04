@@ -93,7 +93,4 @@ public sealed class UsdScenesPlugin : IPlugin
 /// <c>Read&lt;UsdRuntimeHandle&gt;()</c> dependency on their <see cref="SystemDescriptor"/>
 /// so the parallel scheduler sees the order constraint.
 /// </summary>
-public sealed class UsdRuntimeHandle
-{
-}
-
+public sealed class UsdRuntimeHandle { }

@@ -102,7 +102,6 @@ public class UsdSceneLoaderTests
     /// Builds an <see cref="AssetLoadContext"/> for tests. The internal constructor is visible
     /// here because Engine declares <c>[InternalsVisibleTo("Engine.Tests")]</c>.
     /// </summary>
-    private static AssetLoadContext MakeContext(string path, byte[] bytes)
-        => new(new MemoryStream(bytes), new AssetPath(path), _ => default);
+    private static AssetLoadContext MakeContext(string path, byte[] bytes) => 
+        new(new MemoryStream(bytes), new AssetPath(path), _ => default);
 }
-

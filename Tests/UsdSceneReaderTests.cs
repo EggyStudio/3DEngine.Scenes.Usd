@@ -178,4 +178,3 @@ public sealed class UsdSceneReaderTests
         _output.WriteLine($"[reader] {byPath.Count()} unique material(s) across {materials.Count} binding(s).");
     }
 }
-

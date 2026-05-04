@@ -750,4 +750,3 @@ public sealed class UsdSceneReader : ISceneReader
         catch (Exception ex) { Logger.Debug($"UsdSceneReader: failed to delete temp '{path}': {ex.Message}"); }
     }
 }
-

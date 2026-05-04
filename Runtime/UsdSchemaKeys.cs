@@ -42,4 +42,3 @@ internal static class UsdSchemaKeys
         _                    => "OPAQUE",
     };
 }
-

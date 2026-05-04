@@ -606,5 +606,3 @@ public sealed class UsdSceneWriter : ISceneWriter
         }
     }
 }
-
-

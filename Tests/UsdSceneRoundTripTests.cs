@@ -286,6 +286,3 @@ public sealed class UsdSceneRoundTripTests : IDisposable
         ascii.Should().Contain("metersPerUnit");
     }
 }
-
-
-

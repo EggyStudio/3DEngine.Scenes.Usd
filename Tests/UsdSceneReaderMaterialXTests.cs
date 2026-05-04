@@ -27,8 +27,8 @@ public sealed class UsdSceneReaderMaterialXTests
         _ready = UsdRuntimeLayout.IsAvailable();
     }
 
-    private static string FixturePath(string name)
-        => Path.Combine(AppContext.BaseDirectory, "source", "tests", "fixtures", name);
+    private static string FixturePath(string name) => 
+        Path.Combine(AppContext.BaseDirectory, "source", "tests", "fixtures", name);
 
     private static AssetLoadContext OpenFixture(string name)
     {
@@ -62,4 +62,3 @@ public sealed class UsdSceneReaderMaterialXTests
             o => o.Using<float>(c => c.Subject.Should().BeApproximately(c.Expectation, 1e-5f)).WhenTypeIs<float>());
     }
 }
-

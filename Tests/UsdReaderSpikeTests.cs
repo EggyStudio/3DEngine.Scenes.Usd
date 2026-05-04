@@ -423,8 +423,3 @@ public sealed class UsdReaderSpikeTests
         }
     }
 }
-
-
-
-
-

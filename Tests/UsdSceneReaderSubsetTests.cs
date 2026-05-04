@@ -23,8 +23,8 @@ public sealed class UsdSceneReaderSubsetTests
         _ready = UsdRuntimeLayout.IsAvailable();
     }
 
-    private static string FixturePath(string name)
-        => Path.Combine(AppContext.BaseDirectory, "source", "tests", "fixtures", name);
+    private static string FixturePath(string name) => 
+        Path.Combine(AppContext.BaseDirectory, "source", "tests", "fixtures", name);
 
     private static AssetLoadContext OpenFixture(string name)
     {
@@ -108,4 +108,3 @@ public sealed class UsdSceneReaderSubsetTests
         materials.Select(m => m.SourcePath).Should().Contain(new[] { "/World/Looks/A", "/World/Looks/B" });
     }
 }
-

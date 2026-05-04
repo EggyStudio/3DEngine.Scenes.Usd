@@ -628,5 +628,3 @@ internal static class UsdMaterialReader
         catch { value = default; return false; }
     }
 }
-
-

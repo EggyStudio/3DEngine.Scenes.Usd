@@ -52,4 +52,3 @@ public sealed class UsdSceneLoader : IAssetLoader<SceneAsset>
         }
     }
 }
-
