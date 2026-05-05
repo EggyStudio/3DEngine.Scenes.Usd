@@ -237,10 +237,17 @@ public sealed class UsdSceneReader : ISceneReader
                 if (cam is not null) node.Components.Add(cam);
                 break;
 
-            case "DistantLight" or "SphereLight" or "RectLight" or "DiskLight"
-                or "CylinderLight" or "DomeLight"
-                when settings.LoadPayloads.HasFlag(LoadPayloads.Lights):
-                node.Components.Add(ReadLight(prim, typeName, time));
+            case var t when settings.LoadPayloads.HasFlag(LoadPayloads.Lights)
+                            && UsdLightReader.SupportedTypeNames.Contains(t):
+                node.Components.Add(UsdLightReader.Read(prim, typeName, time));
+                break;
+
+            case "LightFilter" when settings.LoadPayloads.HasFlag(LoadPayloads.Lights):
+                // LightFilter prims are referenced from light payloads via SceneLightPayload.FilterPaths.
+                // First-class SceneLightFilterPayload support (with the filter shader graph) is
+                // a follow-up; for now we only carry the path linkage so light-link wiring
+                // is preserved end-to-end.
+                Logger.Debug($"UsdSceneReader: LightFilter '{node.SourcePath}' detected; only its prim path is preserved (filter shader graph extraction is a follow-up).");
                 break;
 
             case "PointInstancer" when settings.LoadPayloads.HasFlag(LoadPayloads.Instancing):
@@ -626,93 +633,12 @@ public sealed class UsdSceneReader : ISceneReader
     }
 
     // -- Lights --
-
-    private static SceneLightPayload ReadLight(UsdPrim prim, string typeName, UsdTimeCode time)
-    {
-        var lightApi = new UsdLuxLightAPI(prim);
-        TryGetFloat3FromAttr(lightApi.GetColorAttr(), time, out var color);
-        float intensity = ReadFloat(lightApi.GetIntensityAttr(), time, 1f);
-        float exposure = ReadFloat(lightApi.GetExposureAttr(), time, 0f);
-
-        float? radius = null, width = null, height = null, length = null;
-        string? domeTexture = null;
-
-        switch (typeName)
-        {
-            case "SphereLight":
-                radius = ReadOptionalFloat(new UsdLuxSphereLight(prim).GetRadiusAttr(), time);
-                break;
-            case "DiskLight":
-                radius = ReadOptionalFloat(new UsdLuxDiskLight(prim).GetRadiusAttr(), time);
-                break;
-            case "RectLight":
-                var rect = new UsdLuxRectLight(prim);
-                width = ReadOptionalFloat(rect.GetWidthAttr(), time);
-                height = ReadOptionalFloat(rect.GetHeightAttr(), time);
-                break;
-            case "CylinderLight":
-                var cyl = new UsdLuxCylinderLight(prim);
-                radius = ReadOptionalFloat(cyl.GetRadiusAttr(), time);
-                length = ReadOptionalFloat(cyl.GetLengthAttr(), time);
-                break;
-            case "DomeLight":
-                var dome = new UsdLuxDomeLight(prim);
-                var fileAttr = dome.GetTextureFileAttr();
-                if (fileAttr.IsValid() && fileAttr.HasAuthoredValue())
-                {
-                    try
-                    {
-                        VtValue v = fileAttr.Get(time);
-                        SdfAssetPath ap = v;
-                        var resolved = ap.GetResolvedPath();
-                        domeTexture = !string.IsNullOrEmpty(resolved) ? resolved : ap.GetAssetPath();
-                        // Translate USDZ packaged-asset syntax (foo.usdz[hdri.exr])
-                        // into a synthetic __embedded__/ path the asset server can load.
-                        domeTexture = UsdEmbeddedTextureResolver.Resolve(domeTexture);
-                    }
-                    catch { /* leave null */ }
-                }
-                break;
-        }
-
-        return new SceneLightPayload
-        {
-            Name = prim.GetName().ToString(),
-            Type = typeName switch
-            {
-                "DistantLight"  => SceneLightType.Distant,
-                "SphereLight"   => SceneLightType.Sphere,
-                "RectLight"     => SceneLightType.Rect,
-                "DiskLight"     => SceneLightType.Disk,
-                "CylinderLight" => SceneLightType.Cylinder,
-                "DomeLight"     => SceneLightType.Dome,
-                _               => SceneLightType.Sphere,
-            },
-            Color = color,
-            Intensity = intensity,
-            Exposure = exposure,
-            Radius = radius,
-            Width = width,
-            Height = height,
-            Length = length,
-            DomeTexturePath = domeTexture,
-        };
-    }
-
-    private static bool TryGetFloat3FromAttr(UsdAttribute attr, UsdTimeCode time, out Vector3 value)
-    {
-        if (!attr.IsValid() || !attr.HasAuthoredValue()) { value = Vector3.One; return false; }
-        try
-        {
-            VtValue v = attr.Get(time);
-            GfVec3f vec = v;
-            value = new Vector3(vec[0], vec[1], vec[2]);
-            return true;
-        }
-        catch { value = Vector3.One; return false; }
-    }
+    //
+    // UsdLux extraction (all shapes + ShadowAPI + ShapingAPI + light filters) lives in
+    // UsdLightReader. Kept separate so the schema-rich light path doesn't bloat this file.
 
     // -- Runtime / I/O plumbing --
+
 
     private static int s_runtimeReady;
 

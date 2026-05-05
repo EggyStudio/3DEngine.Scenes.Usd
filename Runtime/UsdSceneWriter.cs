@@ -453,65 +453,8 @@ public sealed class UsdSceneWriter : ISceneWriter
 
     // -- Lights --
 
-    private static UsdPrim WriteLight(UsdStage stage, SdfPath path, SceneLightPayload light)
-    {
-        UsdPrim prim;
-        switch (light.Type)
-        {
-            case SceneLightType.Distant:
-                prim = UsdLuxDistantLight.Define(stage, path).GetPrim();
-                break;
-            case SceneLightType.Sphere:
-                var sphere = UsdLuxSphereLight.Define(stage, path);
-                prim = sphere.GetPrim();
-                if (light.Radius is { } sr)
-                    prim.CreateAttribute(new TfToken("inputs:radius"), SdfValueTypeNames.Float).Set(new VtValue(sr));
-                break;
-            case SceneLightType.Disk:
-                var disk = UsdLuxDiskLight.Define(stage, path);
-                prim = disk.GetPrim();
-                if (light.Radius is { } dr)
-                    prim.CreateAttribute(new TfToken("inputs:radius"), SdfValueTypeNames.Float).Set(new VtValue(dr));
-                break;
-            case SceneLightType.Rect:
-                var rect = UsdLuxRectLight.Define(stage, path);
-                prim = rect.GetPrim();
-                if (light.Width is { } w)
-                    prim.CreateAttribute(new TfToken("inputs:width"), SdfValueTypeNames.Float).Set(new VtValue(w));
-                if (light.Height is { } h)
-                    prim.CreateAttribute(new TfToken("inputs:height"), SdfValueTypeNames.Float).Set(new VtValue(h));
-                break;
-            case SceneLightType.Cylinder:
-                var cyl = UsdLuxCylinderLight.Define(stage, path);
-                prim = cyl.GetPrim();
-                if (light.Radius is { } cr)
-                    prim.CreateAttribute(new TfToken("inputs:radius"), SdfValueTypeNames.Float).Set(new VtValue(cr));
-                if (light.Length is { } cl)
-                    prim.CreateAttribute(new TfToken("inputs:length"), SdfValueTypeNames.Float).Set(new VtValue(cl));
-                break;
-            case SceneLightType.Dome:
-                var dome = UsdLuxDomeLight.Define(stage, path);
-                prim = dome.GetPrim();
-                if (!string.IsNullOrEmpty(light.DomeTexturePath))
-                    prim.CreateAttribute(new TfToken("inputs:texture:file"), SdfValueTypeNames.Asset)
-                        .Set(new VtValue(new SdfAssetPath(light.DomeTexturePath)));
-                break;
-            default:
-                prim = UsdLuxSphereLight.Define(stage, path).GetPrim();
-                break;
-        }
-
-        // Common UsdLux inputs (color / intensity / exposure) authored as inputs:* per the
-        // UsdLux schema; the reader picks them up via UsdLuxLightAPI.
-        prim.CreateAttribute(new TfToken("inputs:color"), SdfValueTypeNames.Color3f)
-            .Set(new VtValue(new GfVec3f(light.Color.X, light.Color.Y, light.Color.Z)));
-        prim.CreateAttribute(new TfToken("inputs:intensity"), SdfValueTypeNames.Float)
-            .Set(new VtValue(light.Intensity));
-        prim.CreateAttribute(new TfToken("inputs:exposure"), SdfValueTypeNames.Float)
-            .Set(new VtValue(light.Exposure));
-
-        return prim;
-    }
+    private static UsdPrim WriteLight(UsdStage stage, SdfPath path, SceneLightPayload light) => 
+        UsdLightWriter.Write(stage, path, light);
 
     // -- Transforms --
 
